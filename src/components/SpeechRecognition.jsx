@@ -14,20 +14,51 @@ const SpeechRecognitionComponent = () => {
     isMicrophoneAvailable,
   } = useSpeechRecognition();
 
+  
   useEffect(() => {
     if (transcript.toLowerCase().includes("capture")) {
       captureScreen();
     }
   }, [transcript]);
 
+  // Toggle mic on/off with better error handling
   const toggleListening = () => {
+    console.log("Mic toggle clicked");
+    console.log("Browser supports speech:", browserSupportsSpeechRecognition);
+    console.log("Mic available:", isMicrophoneAvailable);
+
+    if (!browserSupportsSpeechRecognition) {
+      toast.error("Speech recognition not supported on this browser.");
+      return;
+    }
+
+    if (!isMicrophoneAvailable) {
+      toast.error(
+        "Microphone is not available. Please enable it in browser settings."
+      );
+      return;
+    }
+
     if (listening) {
       SpeechRecognition.stopListening();
+      toast("Stopped listening");
+      console.log("Stopped listening");
     } else {
-      SpeechRecognition.startListening({ continuous: true });
+      SpeechRecognition.startListening({ continuous: true })
+        .then(() => {
+          toast.success("Listening started... Say 'Capture'");
+          console.log("Started listening...");
+        })
+        .catch((err) => {
+          console.error("Mic error:", err);
+          toast.error(
+            "Unable to start microphone. Please check browser permissions."
+          );
+        });
     }
   };
 
+  // Capture screen and download
   const captureScreen = async () => {
     try {
       const canvas = await html2canvas(document.body, {
@@ -49,8 +80,13 @@ const SpeechRecognitionComponent = () => {
     }
   };
 
-  if (!browserSupportsSpeechRecognition || !isMicrophoneAvailable) {
-    return null;
+  
+  if (!browserSupportsSpeechRecognition) {
+    return (
+      <div className="fixed bottom-4 right-4 bg-red-200 text-red-800 p-3 rounded-md z-50">
+        Browser does not support voice recognition.
+      </div>
+    );
   }
 
   return (
@@ -68,7 +104,7 @@ const SpeechRecognitionComponent = () => {
             whiteSpace: "nowrap",
             userSelect: "none",
           }}>
-          Say <strong>"Capture "</strong> to take a screenshot
+          Say <strong>"Capture"</strong> to take a screenshot
         </div>
       )}
 
